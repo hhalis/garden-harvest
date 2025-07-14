@@ -15,6 +15,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build React app
+      run: npm run build
+      
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -24,6 +36,14 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Install Capacitor CLI
+      run: npm install -g @capacitor/cli
+      
+    - name: Generate Capacitor Android project
+      run: |
+        npx cap add android
+        npx cap sync android
+        
     - name: Decode Keystore
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/garden-alchemy-strong.keystore
@@ -50,7 +70,7 @@ jobs:
     - name: Sign APK
       run: |
         cd android
-        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore garden-alchemy-strong.keystore -storepass android123 -keypass android123 app/build/outputs/apk/release/app-release-unsigned.apk upload
+        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore garden-alchemy-strong.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -keypass "${{ secrets.KEY_PASSWORD }}" app/build/outputs/apk/release/app-release-unsigned.apk "${{ secrets.KEY_ALIAS }}"
         
     - name: Align APK
       run: |
@@ -62,9 +82,3 @@ jobs:
       with:
         name: garden-alchemy-apk
         path: android/app/build/outputs/apk/release/garden-alchemy-signed.apk
-        
-    - name: Upload AAB
-      uses: actions/upload-artifact@v4
-      with:
-        name: garden-alchemy-aab
-        path: android/app/build/outputs/bundle/release/app-release.aab
