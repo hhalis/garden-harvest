@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Background circle -->
+    <path
+        android:pathData="M100,100 C155.228,100 200,155.228 200,100 C200,44.772 155.228,0 100,0 C44.772,0 0,44.772 0,100 C0,155.228 44.772,200 100,200 Z"
+        android:fillColor="#4CAF50"/>
+    
+    <!-- Plant stem -->
+    <path
+        android:pathData="M95,120 L105,120 L105,160 L95,160 Z"
+        android:fillColor="#2E7D32"/>
+    
+    <!-- Leaves -->
+    <path
+        android:pathData="M70,90 Q85,75 100,90 Q115,75 130,90 Q115,105 100,90 Q85,105 70,90 Z"
+        android:fillColor="#66BB6A"/>
+    
+    <!-- Center gem -->
+    <path
+        android:pathData="M100,100 C115,100 115,85 100,85 C85,85 85,100 100,100 Z"
+        android:fillColor="#FFD700"/>
+</vector>

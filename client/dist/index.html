@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Garden Alchemy: Merge & Mysteries</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #6C63FF 0%, #4F46E5 100%);
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .game-title {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .game-slot {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+        
+        .game-slot:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .game-slot.center {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            border: 2px solid #FF6B35;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        .game-slot.filled {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: 2px solid #2E7D32;
+        }
+        
+        .controls {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .goal-card {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            max-width: 250px;
+        }
+        
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            z-index: 1000;
+            animation: celebration 1s ease-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        @keyframes celebration {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #FFD700;
+            border-radius: 50%;
+            animation: sparkle 1.5s infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.8rem;
+                margin-bottom: 1rem;
+            }
+            
+            .game-slot {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .goal-card {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin-bottom: 1rem;
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="goal-card">
+            🎯 <strong>Goal:</strong> Place 1 plant gem in the center golden slot to restore the garden!
+        </div>
+        
+        <h1 class="game-title">🌱 Garden Alchemy 🌱</h1>
+        
+        <div class="game-grid" id="gameGrid">
+            <div class="game-slot" data-index="0"></div>
+            <div class="game-slot" data-index="1"></div>
+            <div class="game-slot" data-index="2"></div>
+            <div class="game-slot" data-index="3"></div>
+            <div class="game-slot center" data-index="4" id="centerSlot"></div>
+            <div class="game-slot" data-index="5"></div>
+            <div class="game-slot" data-index="6"></div>
+            <div class="game-slot" data-index="7"></div>
+            <div class="game-slot" data-index="8"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="addPlant()">🌱 Add Plant Gem</button>
+            <button class="btn" onclick="resetGame()">🔄 Reset Garden</button>
+        </div>
+        
+        <div class="sparkle" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
+        <div class="sparkle" style="top: 20%; right: 15%; animation-delay: 0.5s;"></div>
+        <div class="sparkle" style="bottom: 30%; left: 20%; animation-delay: 1s;"></div>
+        <div class="sparkle" style="bottom: 20%; right: 10%; animation-delay: 1.5s;"></div>
+    </div>
+
+    <script>
+        const plantEmojis = ['🌱', '🌿', '🌸', '🌺', '🌻', '🌷', '🌹', '🌼', '🌾', '🍀'];
+        let plants = [];
+        let selectedPlant = null;
+        let selectedIndex = null;
+        let gameWon = false;
+        
+        function addPlant() {
+            if (gameWon) return;
+            
+            const emptySlots = [];
+            const slots = document.querySelectorAll('.game-slot');
+            
+            slots.forEach((slot, index) => {
+                if (!slot.classList.contains('filled')) {
+                    emptySlots.push(index);
+                }
+            });
+            
+            if (emptySlots.length === 0) return;
+            
+            const randomSlot = emptySlots[Math.floor(Math.random() * emptySlots.length)];
+            const randomPlant = plantEmojis[Math.floor(Math.random() * plantEmojis.length)];
+            
+            plants[randomSlot] = randomPlant;
+            
+            const slot = document.querySelector(`[data-index="${randomSlot}"]`);
+            slot.textContent = randomPlant;
+            slot.classList.add('filled');
+            
+            // Add click handler for plant selection
+            slot.onclick = () => selectPlant(randomSlot);
+            
+            // Add touch support
+            slot.ontouchstart = (e) => {
+                e.preventDefault();
+                selectPlant(randomSlot);
+            };
+            
+            // Vibrate on mobile
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+        
+        function selectPlant(index) {
+            if (gameWon) return;
+            
+            const slots = document.querySelectorAll('.game-slot');
+            
+            // Remove previous selection
+            slots.forEach(slot => slot.style.border = '2px solid transparent');
+            
+            if (selectedIndex === index) {
+                // Deselect
+                selectedPlant = null;
+                selectedIndex = null;
+                return;
+            }
+            
+            // Select new plant
+            selectedPlant = plants[index];
+            selectedIndex = index;
+            
+            const slot = document.querySelector(`[data-index="${index}"]`);
+            slot.style.border = '2px solid #FF6B35';
+            
+            // Show selection feedback
+            slot.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                slot.style.transform = 'scale(1)';
+            }, 200);
+        }
+        
+        function resetGame() {
+            plants = [];
+            selectedPlant = null;
+            selectedIndex = null;
+            gameWon = false;
+            
+            const slots = document.querySelectorAll('.game-slot');
+            slots.forEach(slot => {
+                slot.textContent = '';
+                slot.classList.remove('filled');
+                slot.style.border = '2px solid transparent';
+                slot.onclick = null;
+                slot.ontouchstart = null;
+            });
+            
+            // Restore center slot click handler
+            const centerSlot = document.getElementById('centerSlot');
+            centerSlot.onclick = () => placePlantInCenter();
+            centerSlot.ontouchstart = (e) => {
+                e.preventDefault();
+                placePlantInCenter();
+            };
+            
+            // Remove win message
+            const winMessage = document.querySelector('.win-message');
+            if (winMessage) {
+                winMessage.remove();
+            }
+        }
+        
+        function placePlantInCenter() {
+            if (gameWon) return;
+            
+            const centerSlot = document.getElementById('centerSlot');
+            
+            if (selectedPlant && selectedIndex !== null) {
+                // Move selected plant to center
+                centerSlot.textContent = selectedPlant;
+                centerSlot.classList.add('filled');
+                
+                // Remove from original position
+                const originalSlot = document.querySelector(`[data-index="${selectedIndex}"]`);
+                originalSlot.textContent = '';
+                originalSlot.classList.remove('filled');
+                originalSlot.style.border = '2px solid transparent';
+                plants[selectedIndex] = null;
+                
+                // Update center position
+                plants[4] = selectedPlant;
+                
+                // Clear selection
+                selectedPlant = null;
+                selectedIndex = null;
+                
+                // Check win condition
+                if (plants[4]) {
+                    winGame();
+                }
+                
+                // Vibrate on mobile
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+            }
+        }
+        
+        function winGame() {
+            gameWon = true;
+            
+            // Create win message
+            const winMessage = document.createElement('div');
+            winMessage.className = 'win-message';
+            winMessage.innerHTML = `
+                <div>🎉 Garden Restored! 🎉</div>
+                <div style="font-size: 1rem; margin-top: 10px;">You've successfully placed a plant gem in the center!</div>
+                <div style="font-size: 0.9rem; margin-top: 10px; opacity: 0.8;">Tap "Reset Garden" to play again</div>
+            `;
+            
+            document.body.appendChild(winMessage);
+            
+            // Celebrate animation
+            const centerSlot = document.getElementById('centerSlot');
+            centerSlot.style.animation = 'pulse 0.5s ease-in-out 3';
+            
+            // Vibrate celebration
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+            
+            setTimeout(() => {
+                centerSlot.style.animation = '';
+            }, 1500);
+        }
+        
+        // Initialize game
+        function initGame() {
+            const centerSlot = document.getElementById('centerSlot');
+            centerSlot.onclick = () => placePlantInCenter();
+            centerSlot.ontouchstart = (e) => {
+                e.preventDefault();
+                placePlantInCenter();
+            };
+            
+            // Prevent default touch behaviors
+            document.addEventListener('touchstart', (e) => {
+                if (e.target.classList.contains('game-slot') || e.target.classList.contains('btn')) {
+                    // Allow interaction with game elements
+                    return;
+                }
+                e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+        }
+        
+        // Start game when page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
