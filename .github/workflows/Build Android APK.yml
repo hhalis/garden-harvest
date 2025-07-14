@@ -1,10 +1,6 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -38,46 +34,26 @@ jobs:
     - name: Install Capacitor CLI
       run: npm install -g @capacitor/cli
       
-    - name: Generate Capacitor Android project
-      run: |
-        npx cap add android
-        npx cap sync android
-        
+    - name: Sync Capacitor to Android
+      run: npx cap sync android
+      
     - name: Decode Keystore
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/garden-alchemy-strong.keystore
+        mkdir -p android/app
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/garden-alchemy-strong.keystore
         
-    - name: Cache Gradle packages
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
-      
-    - name: Build with Gradle
+    - name: Build signed APK
       run: |
         cd android
-        ./gradlew clean
-        ./gradlew assembleRelease
+        chmod +x gradlew
+        ANDROID_COMPILE_SDK=34 ANDROID_BUILD_TOOLS=34.0.0 ANDROID_SDK_ROOT=$ANDROID_HOME ./gradlew assembleRelease \
+        -Pandroid.injected.signing.store.file=app/garden-alchemy-strong.keystore \
+        -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+        -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+        -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
         
-    - name: Sign APK
-      run: |
-        cd android
-        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore garden-alchemy-strong.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -keypass "${{ secrets.KEY_PASSWORD }}" app/build/outputs/apk/release/app-release-unsigned.apk "${{ secrets.KEY_ALIAS }}"
-        
-    - name: Align APK
-      run: |
-        cd android
-        $ANDROID_HOME/build-tools/34.0.0/zipalign -v 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/garden-alchemy-signed.apk
-        
-    - name: Upload APK
+    - name: Upload signed APK
       uses: actions/upload-artifact@v4
       with:
-        name: garden-alchemy-apk
-        path: android/app/build/outputs/apk/release/garden-alchemy-signed.apk
+        name: signed-apk
+        path: android/app/build/outputs/apk/release/app-release.apk
