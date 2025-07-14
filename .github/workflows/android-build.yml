@@ -1,0 +1,70 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Decode Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/garden-alchemy-strong.keystore
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+      
+    - name: Build with Gradle
+      run: |
+        cd android
+        ./gradlew clean
+        ./gradlew assembleRelease
+        
+    - name: Sign APK
+      run: |
+        cd android
+        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore garden-alchemy-strong.keystore -storepass android123 -keypass android123 app/build/outputs/apk/release/app-release-unsigned.apk upload
+        
+    - name: Align APK
+      run: |
+        cd android
+        $ANDROID_HOME/build-tools/34.0.0/zipalign -v 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/garden-alchemy-signed.apk
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: garden-alchemy-apk
+        path: android/app/build/outputs/apk/release/garden-alchemy-signed.apk
+        
+    - name: Upload AAB
+      uses: actions/upload-artifact@v4
+      with:
+        name: garden-alchemy-aab
+        path: android/app/build/outputs/bundle/release/app-release.aab
